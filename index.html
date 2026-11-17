@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#6d28d9" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icon-192.png" />
+  <title>PeluApp — Gestión & Control Tributario</title>
+  <style>
+    :root {
+      --primary: #6d28d9;
+      --primary-dark: #5b21b6;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #059669;
+      --danger: #dc2626;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 70px; }
+    header {
+      background: var(--primary); color: white; padding: 14px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    header h1 { margin: 0; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #fbbf24; display: inline-block; }
+    .status-dot.online { background: #34d399; }
+    .badge-sec { font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 12px; cursor: pointer; }
+    nav {
+      display: flex; background: var(--card); border-bottom: 1px solid var(--border);
+      overflow-x: auto; position: sticky; top: 50px; z-index: 9;
+    }
+    nav button {
+      flex: 1; padding: 12px 10px; border: none; background: none; font-weight: 600;
+      color: var(--muted); cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent;
+    }
+    nav button.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .container { max-width: 900px; margin: 16px auto; padding: 0 12px; }
+    .card {
+      background: var(--card); border-radius: 12px; padding: 16px;
+      border: 1px solid var(--border); margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    h2 { margin: 0 0 12px; font-size: 1.05rem; color: var(--primary-dark); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+    label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+    input, select {
+      width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.95rem; margin-bottom: 10px;
+    }
+    .btn {
+      background: var(--primary); color: white; border: none; padding: 11px 16px;
+      border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; font-size: 0.95rem;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+    .service-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .service-item input[type="number"] { width: 115px; margin: 0; text-align: right; }
+    .invoice-guide {
+      background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 10px; padding: 14px;
+      font-family: monospace; font-size: 0.88rem; margin-top: 12px;
+    }
+    .invoice-guide h3 { margin: 0 0 8px; color: #b45309; font-family: sans-serif; font-size: 0.95rem; }
+    .row-flex { display: flex; justify-content: space-between; margin: 4px 0; }
+    .hidden { display: none !important; }
+    .kpi-box { background: #f1f5f9; padding: 12px; border-radius: 8px; text-align: center; }
+    .kpi-box strong { display: block; font-size: 1.15rem; color: var(--primary); }
+    #login-screen {
+      position: fixed; inset: 0; background: var(--bg); z-index: 100;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .login-box {
+      background: white; padding: 24px; border-radius: 14px; width: 100%; max-width: 360px;
+      border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center;
+    }
+    .list-item {
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- PANTALLA DE ACCESO PROTEGIDO -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1 style="color:var(--primary); margin-bottom:4px;">✂️ PeluApp</h1>
+    <p style="font-size:0.85rem; color:var(--muted); margin-bottom:18px;">Sistema Encriptado · IVA General PY</p>
+    <label style="text-align:left;">Perfil de Usuario</label>
+    <select id="login-role">
+      <option value="caja">Recepción / Caja</option>
+      <option value="admin">Dueño / Administración</option>
+    </select>
+    <label style="text-align:left;">PIN de Seguridad</label>
+    <input type="password" id="login-pin" inputmode="numeric" placeholder="••••" />
+    <button class="btn" id="btn-login">Ingresar al Sistema</button>
+    <p id="login-error" style="color:var(--danger); font-size:0.82rem; margin-top:8px;"></p>
+  </div>
+</div>
+
+<header>
+  <h1><span class="status-dot" id="sync-dot"></span> ✂️ PeluApp</h1>
+  <span class="badge-sec" id="user-badge">🔒 Salir</span>
+</header>
+
+<nav>
+  <button class="active" data-tab="pos">1. Caja & Servicios</button>
+  <button id="nav-compras" data-tab="compras">2. Compras & IVA</button>
+  <button data-tab="cierre">3. Cierre & Depósitos</button>
+  <button id="nav-config" data-tab="config">4. Facturación</button>
+</nav>
+
+<div class="container">
+
+  <!-- TAB 1: POS Y GUÍA DE FACTURA MANUAL -->
+  <section id="tab-pos">
+    <div class="card">
+      <h2>Datos del Cliente (Factura Legal)</h2>
+      <div class="grid-2">
+        <div>
+          <label>Nombre o Razón Social</label>
+          <input type="text" id="cli-nombre" list="clientes-datalist" placeholder="Ej: María González / Ocasional" />
+          <datalist id="clientes-datalist"></datalist>
+        </div>
+        <div>
+          <label>RUC o C.I. (con DV)</label>
+          <input type="text" id="cli-ruc" placeholder="Ej: 4521890-3 o X" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Servicios Realizados (Precios Editables en Gs.)</h2>
+      <div id="lista-servicios"></div>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <input type="text" id="nuevo-srv-nombre" placeholder="Nuevo servicio (ej: Botóx capilar)" style="margin:0;" />
+        <input type="number" id="nuevo-srv-precio" placeholder="Gs." style="width:120px; margin:0;" />
+        <button class="btn" style="width:auto;" id="btn-add-srv">+ Agregar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Forma de Pago y Emisión</h2>
+      <div class="grid-2">
+        <div>
+          <label>Método de Pago</label>
+          <select id="metodo-pago">
+            <option value="Efectivo">Efectivo (Gs.)</option>
+            <option value="Tarjeta Débito">Tarjeta de Débito</option>
+            <option value="Tarjeta Crédito">Tarjeta de Crédito</option>
+            <option value="Pago QR">Pago QR</option>
+            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+            <option value="Crédito Cliente">Crédito / Cuenta Corriente</option>
+          </select>
+        </div>
+        <div>
+          <label>Condición de Venta (Factura)</label>
+          <select id="condicion-venta">
+            <option value="Contado">Contado</option>
+            <option value="Crédito">Crédito</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" id="btn-venta">Registrar Cobro y Generar Guía de Factura</button>
+    </div>
+
+    <div id="guia-factura" class="invoice-guide hidden">
+      <h3>📋 Guía para Completar Factura Preimpresa (Talonario)</h3>
+      <div class="row-flex"><span>Fecha:</span><strong id="gf-fecha"></strong></div>
+      <div class="row-flex"><span>Condición:</span><strong id="gf-condicion"></strong></div>
+      <div class="row-flex"><span>RUC / CI:</span><strong id="gf-ruc"></strong></div>
+      <div class="row-flex"><span>Nombre / Razón Social:</span><strong id="gf-nombre"></strong></div>
+      <hr />
+      <div id="gf-detalle"></div>
+      <hr />
+      <div class="row-flex"><span>SUBTOTAL GRAVADAS 10%:</span><strong id="gf-grav10"></strong></div>
+      <div class="row-flex"><span>TOTAL A PAGAR (GS.):</span><strong id="gf-total"></strong></div>
+      <div class="row-flex" style="color:#059669;"><span>LIQUIDACIÓN DEL IVA (10%):</span><strong id="gf-iva10"></strong></div>
+    </div>
+  </section>
+
+  <!-- TAB 2: COMPRAS, CLASIFICADOR CONTABLE PY Y LIQUIDACIÓN IVA -->
+  <section id="tab-compras" class="hidden">
+    <div class="card">
+      <h2>Registrar Compra / Gasto (Proveedores)</h2>
+      <div class="grid-2">
+        <div>
+          <label>Proveedor y RUC</label>
+          <input type="text" id="comp-prov" placeholder="Ej: Distribuidora Capilar - 80012345-6" />
+        </div>
+        <div>
+          <label>N° Factura Legal</label>
+          <input type="text" id="comp-nro" placeholder="Ej: 001-001-0004521" />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label>Categoría del Gasto (Legislación PY)</label>
+          <select id="comp-tipo">
+            <option value="insumos">Insumos directos (Shampoo, tinturas, oxidantes)</option>
+            <option value="servicios_basicos">Servicios básicos / Alquiler (ANDE, ESSAP, Local)</option>
+            <option value="admin">Gastos administrativos (Internet, teléfono, contabilidad)</option>
+            <option value="equipamiento">Equipamiento / Herramientas (Secadores, sillones)</option>
+            <option value="no_deducible">Compra menor sin factura legal (No deducible)</option>
+          </select>
+        </div>
+        <div>
+          <label>Condición de Compra</label>
+          <select id="comp-condicion">
+            <option value="Contado">Contado</option>
+            <option value="Crédito">Crédito (Cuentas a Pagar)</option>
+          </select>
+        </div>
+      </div>
+      <p id="cuenta-sugerida" style="font-size:0.85rem; color:var(--primary); font-weight:600; margin:4px 0 10px;">
+        Cuenta Contable: 5.1.01 - Costo Directo de Servicios (Crédito Fiscal 10%)
+      </p>
+      <div class="grid-2">
+        <div>
+          <label>Monto Total Factura (IVA Incluido Gs.)</label>
+          <input type="number" id="comp-monto" placeholder="Ej: 550000" />
+        </div>
+        <div>
+          <label>Tasa de IVA Aplicada</label>
+          <select id="comp-tasa">
+            <option value="10">Gravada 10% (General)</option>
+            <option value="5">Gravada 5% (Alquiler / Productos 5%)</option>
+            <option value="0">Exenta / No Deducible (0%)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" id="btn-compra">Guardar Compra y Actualizar IVA</button>
+    </div>
+
+    <div class="card">
+      <h2>Posición Mensual IVA (Formulario 120 - DNIT)</h2>
+      <div class="grid-2">
+        <div class="kpi-box">
+          <span>IVA Débito Fiscal (Ventas)</span>
+          <strong id="kpi-debito">Gs. 0</strong>
+        </div>
+        <div class="kpi-box">
+          <span>IVA Crédito Fiscal (Compras)</span>
+          <strong id="kpi-credito" style="color:var(--success);">Gs. 0</strong>
+        </div>
+      </div>
+      <div class="kpi-box" style="margin-top:10px; background:#ede9fe;">
+        <span>Saldo Estimado (A Pagar / A Favor)</span>
+        <strong id="kpi-saldo">Gs. 0</strong>
+      </div>
+      <button class="btn btn-outline" style="margin-top:12px;" id="btn-exportar">
+        📥 Exportar Libro Compra-Venta (CSV / Excel)
+      </button>
+    </div>
+  </section>
+
+  <!-- TAB 3: CIERRE DE CAJA Y DEPÓSITOS -->
+  <section id="tab-cierre" class="hidden">
+    <div class="card">
+      <h2>Arqueo y Cierre de Caja del Día</h2>
+      <div id="resumen-caja"></div>
+      <hr />
+      <label>Registrar Depósito de Valores / Rendición</label>
+      <div class="grid-2">
+        <input type="number" id="dep-monto" placeholder="Monto depositado (Gs.)" />
+        <input type="text" id="dep-ref" placeholder="Banco / N° Boleta o Referencia" />
+      </div>
+      <button class="btn btn-outline" id="btn-deposito">Registrar Depósito de Efectivo</button>
+      <p id="estado-depositos" style="font-size:0.88rem; margin-top:10px; color:var(--muted);"></p>
+    </div>
+    <div class="card">
+      <h2>Créditos / Cuentas Corrientes de Clientes</h2>
+      <div id="lista-creditos"></div>
+    </div>
+  </section>
+
+  <!-- TAB 4: PREPARACIÓN IMPRESORA Y FACTURACIÓN ELECTRÓNICA -->
+  <section id="tab-config" class="hidden">
+    <div class="card">
+      <h2>Parametrización Futura (Impresión y SIFEN e-Kuatia)</h2>
+      <p style="font-size:0.9rem; color:var(--muted);">
+        Cada operación se guarda cifrada con estructura compatible para activar:
+      </p>
+      <label>Modo de Emisión de Comprobantes</label>
+      <select id="cfg-modo">
+        <option value="manual" selected>Modo 1: Guía para Factura Preimpresa Manual (Activo)</option>
+        <option value="impresora">Modo 2: Impresión Directa Matricial / Térmica (Listo)</option>
+        <option value="sifen">Modo 3: Facturación Electrónica SIFEN / e-Kuatia XML (Listo)</option>
+      </select>
+      <div class="grid-2">
+        <div>
+          <label>Timbrado Vigente</label>
+          <input type="text" id="cfg-timbrado" placeholder="Ej: 16845210" />
+        </div>
+        <div>
+          <label>Punto de Expedición</label>
+          <input type="text" id="cfg-exp" value="001-001" />
+        </div>
+      </div>
+      <button class="btn" id="btn-save-cfg">Guardar Parámetros Fiscales</button>
+    </div>
+  </section>
+
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6wnqqVyCHU0rYVzEFmn_aVcT_rYZd6pk",
+    authDomain: "peluapp-py.firebaseapp.com",
+    projectId: "peluapp-py",
+    storageBucket: "peluapp-py.firebasestorage.app",
+    messagingSenderId: "51903163969",
+    appId: "1:51903163969:web:0d9f9c64ac456efe8060c0"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const STATE_REF = doc(db, "peluapp_data", "salon_principal");
+
+  // Motor de Cifrado AES-GCM Nativo (protege los datos almacenados en la nube)
+  const SECRET_SEED = "PeluApp-PY-2026-DNIT-Shield";
+  async function getCryptoKey() {
+    const enc = new TextEncoder();
+    const baseKey = await crypto.subtle.importKey("raw", enc.encode(SECRET_SEED), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: enc.encode("peluapp-salt"), iterations: 100000, hash: "SHA-256" },
+      baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+    );
+  }
+
+  async function encryptPayload(obj) {
+    const key = await getCryptoKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encoded = new TextEncoder().encode(JSON.stringify(obj));
+    const cipher = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+    return {
+      iv: btoa(String.fromCharCode(...iv)),
+      data: btoa(String.fromCharCode(...new Uint8Array(cipher)))
+    };
+  }
+
+  async function decryptPayload(payload) {
+    const key = await getCryptoKey();
+    const iv = Uint8Array.from(atob(payload.iv), c => c.charCodeAt(0));
+    const data = Uint8Array.from(atob(payload.data), c => c.charCodeAt(0));
+    const dec = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data);
+    return JSON.parse(new TextDecoder().decode(dec));
+  }
+
+  // Estado sincronizado
+  let state = {
+    servicios: [
+      { id: 1, nombre: "Corte Dama / Caballero", precio: 60000 },
+      { id: 2, nombre: "Brushing / Modelado", precio: 50000 },
+      { id: 3, nombre: "Coloración / Tinte completo", precio: 180000 },
+      { id: 4, nombre: "Nutrición / Baño de Crema", precio: 80000 },
+      { id: 5, nombre: "Manicura y Esmaltado", precio: 45000 }
+    ],
+    clientes: [],
+    ventas: [],
+    compras: [],
+    depositos: [],
+    config: { modo: "manual", timbrado: "", exp: "001-001" }
+  };
+  let seleccionados = new Set();
+  let rolActual = null;
+
+  const fmt = (n) => "Gs. " + Math.round(n).toLocaleString("es-PY");
+
+  async function syncToCloud() {
+    try {
+      const encrypted = await encryptPayload(state);
+      await setDoc(STATE_REF, { ...encrypted, updatedAt: Date.now() });
+    } catch (e) {
+      console.error("Error guardando en nube:", e);
+    }
+  }
+
+  // Conectar sesión anónima y escuchar cambios en tiempo real
+  signInAnonymously(auth).then(() => {
+    document.getElementById("sync-dot").classList.add("online");
+    onSnapshot(STATE_REF, async (snap) => {
+      if (snap.exists() && snap.data().data) {
+        try {
+          state = await decryptPayload(snap.data());
+          renderAll();
+        } catch (err) {
+          console.error("Error descifrando datos:", err);
+        }
+      }
+    });
+  }).catch(() => {});
+
+  // Login por Roles (Caja PIN: 1234 | Admin PIN: 9999)
+  document.getElementById("btn-login").onclick = () => {
+    const rol = document.getElementById("login-role").value;
+    const pin = document.getElementById("login-pin").value;
+    const pines = { caja: "1234", admin: "9999" };
+    if (pin !== pines[rol]) {
+      document.getElementById("login-error").textContent = "PIN incorrecto.";
+      return;
+    }
+    rolActual = rol;
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("user-badge").textContent = (rol === "admin" ? "👑 Admin" : "💇 Caja") + " · Salir";
+    document.getElementById("nav-compras").classList.toggle("hidden", rol !== "admin");
+    document.getElementById("nav-config").classList.toggle("hidden", rol !== "admin");
+    renderAll();
+  };
+
+  document.getElementById("user-badge").onclick = () => {
+    rolActual = null;
+    document.getElementById("login-pin").value = "";
+    document.getElementById("login-screen").classList.remove("hidden");
+  };
+
+  // Autocompletado de RUC al elegir cliente registrado
+  document.getElementById("cli-nombre").addEventListener("input", (e) => {
+    const found = state.clientes.find(c => c.nombre.toLowerCase() === e.target.value.toLowerCase());
+    if (found) document.getElementById("cli-ruc").value = found.ruc;
+  });
+
+  function renderServicios() {
+    const cont = document.getElementById("lista-servicios");
+    cont.innerHTML = state.servicios.map((s, idx) => `
+      <div class="service-item">
+        <label style="margin:0; display:flex; align-items:center; gap:8px; color:var(--text); cursor:pointer;">
+          <input type="checkbox" data-id="${s.id}" style="width:auto; margin:0;" ${seleccionados.has(s.id) ? "checked" : ""} />
+          ${s.nombre}
+        </label>
+        <input type="number" data-idx="${idx}" value="${s.precio}" />
+      </div>
+    `).join("");
+
+    cont.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+      chk.onchange = () => {
+        const id = Number(chk.dataset.id);
+        chk.checked ? seleccionados.add(id) : seleccionados.delete(id);
+      };
+    });
+    cont.querySelectorAll('input[type="number"]').forEach(inp => {
+      inp.onchange = async () => {
+        state.servicios[Number(inp.dataset.idx)].precio = Number(inp.value);
+        await syncToCloud();
+      };
+    });
+  }
+
+  document.getElementById("btn-add-srv").onclick = async () => {
+    const nombre = document.getElementById("nuevo-srv-nombre").value.trim();
+    const precio = Number(document.getElementById("nuevo-srv-precio").value);
+    if (!nombre || precio <= 0) return;
+    const id = Date.now();
+    state.servicios.push({ id, nombre, precio });
+    seleccionados.add(id);
+    document.getElementById("nuevo-srv-nombre").value = "";
+    document.getElementById("nuevo-srv-precio").value = "";
+    renderServicios();
+    await syncToCloud();
+  };
+
+  document.getElementById("btn-venta").onclick = async () => {
+    const elegidos = state.servicios.filter(s => seleccionados.has(s.id));
+    if (elegidos.length === 0) return alert("Seleccioná al menos un servicio.");
+
+    const nombre = document.getElementById("cli-nombre").value.trim() || "Cliente Ocasional";
+    const ruc = document.getElementById("cli-ruc").value.trim() || "X";
+    const metodo = document.getElementById("metodo-pago").value;
+    const condicion = document.getElementById("condicion-venta").value;
+
+    if (nombre !== "Cliente Ocasional" && !state.clientes.some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+      state.clientes.push({ nombre, ruc });
+    }
+
+    const total = elegidos.reduce((acc, s) => acc + s.precio, 0);
+    const iva10 = total / 11;
+    const fecha = new Date().toLocaleDateString("es-PY");
+
+    state.ventas.push({ id: Date.now(), fecha, nombre, ruc, metodo, condicion, items: elegidos, total, iva10 });
+
+    document.getElementById("gf-fecha").textContent = fecha;
+    document.getElementById("gf-condicion").textContent = condicion.toUpperCase();
+    document.getElementById("gf-ruc").textContent = ruc;
+    document.getElementById("gf-nombre").textContent = nombre;
+    document.getElementById("gf-detalle").innerHTML = elegidos.map(i =>
+      `<div class="row-flex"><span>1x ${i.nombre}</span><span>${fmt(i.precio)}</span></div>`
+    ).join("");
+    document.getElementById("gf-grav10").textContent = fmt(total);
+    document.getElementById("gf-total").textContent = fmt(total);
+    document.getElementById("gf-iva10").textContent = fmt(iva10);
+    document.getElementById("guia-factura").classList.remove("hidden");
+
+    seleccionados.clear();
+    renderAll();
+    await syncToCloud();
+  };
+
+  document.getElementById("comp-tipo").onchange = () => {
+    const tipo = document.getElementById("comp-tipo").value;
+    const map = {
+      insumos: "5.1.01 - Costo Directo de Servicios (Crédito Fiscal 10%)",
+      servicios_basicos: "6.1.02 - Gastos Operativos del Salón (Crédito Fiscal 10% / 5%)",
+      admin: "6.1.05 - Gastos Administrativos y Conectividad (Crédito Fiscal 10%)",
+      equipamiento: "1.2.01 - Activo Fijo / Equipamiento de Salón (Crédito Fiscal 10%)",
+      no_deducible: "6.9.01 - Gastos No Deducibles sin Respaldo Legal (0% IVA)"
+    };
+    document.getElementById("cuenta-sugerida").textContent = "Cuenta Contable: " + map[tipo];
+  };
+
+  document.getElementById("btn-compra").onclick = async () => {
+    const prov = document.getElementById("comp-prov").value.trim();
+    const nro = document.getElementById("comp-nro").value.trim();
+    const tipo = document.getElementById("comp-tipo").value;
+    const condicion = document.getElementById("comp-condicion").value;
+    const monto = Number(document.getElementById("comp-monto").value);
+    const tasa = Number(document.getElementById("comp-tasa").value);
+    if (!prov || monto <= 0) return alert("Completá proveedor y monto.");
+
+    let ivaCredito = 0;
+    if (tasa === 10) ivaCredito = monto / 11;
+    if (tasa === 5) ivaCredito = monto / 21;
+
+    state.compras.push({
+      id: Date.now(), fecha: new Date().toLocaleDateString("es-PY"),
+      prov, nro, tipo, condicion, monto, tasa, ivaCredito
+    });
+    document.getElementById("comp-prov").value = "";
+    document.getElementById("comp-nro").value = "";
+    document.getElementById("comp-monto").value = "";
+    renderAll();
+    await syncToCloud();
+    alert("Compra registrada, clasificada y encriptada en la nube.");
+  };
+
+  document.getElementById("btn-deposito").onclick = async () => {
+    const monto = Number(document.getElementById("dep-monto").value);
+    const ref = document.getElementById("dep-ref").value.trim() || "Sin ref.";
+    if (monto <= 0) return;
+    state.depositos.push({ fecha: new Date().toLocaleDateString("es-PY"), monto, ref });
+    document.getElementById("dep-monto").value = "";
+    document.getElementById("dep-ref").value = "";
+    renderAll();
+    await syncToCloud();
+  };
+
+  document.getElementById("btn-save-cfg").onclick = async () => {
+    state.config = {
+      modo: document.getElementById("cfg-modo").value,
+      timbrado: document.getElementById("cfg-timbrado").value,
+      exp: document.getElementById("cfg-exp").value
+    };
+    await syncToCloud();
+    alert("Parámetros guardados.");
+  };
+
+  document.getElementById("btn-exportar").onclick = () => {
+    let csv = "TIPO;FECHA;CONTRA-PARTE;RUC_FACTURA;CONDICION;TOTAL_GS;IVA_GS\n";
+    state.ventas.forEach(v => {
+      csv += `VENTA;${v.fecha};${v.nombre};${v.ruc};${v.condicion};${Math.round(v.total)};${Math.round(v.iva10)}\n`;
+    });
+    state.compras.forEach(c => {
+      csv += `COMPRA (${c.tipo});${c.fecha};${c.prov};${c.nro};${c.condicion};${Math.round(c.monto)};${Math.round(c.ivaCredito)}\n`;
+    });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `PeluApp_Libro_IVA_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+  };
+
+  function renderAll() {
+    renderServicios();
+    document.getElementById("clientes-datalist").innerHTML = state.clientes
+      .map(c => `<option value="${c.nombre}">${c.ruc}</option>`).join("");
+
+    const totalDebito = state.ventas.reduce((a, v) => a + v.iva10, 0);
+    const totalCredito = state.compras.reduce((a, c) => a + c.ivaCredito, 0);
+    const saldo = totalDebito - totalCredito;
+
+    document.getElementById("kpi-debito").textContent = fmt(totalDebito);
+    document.getElementById("kpi-credito").textContent = fmt(totalCredito);
+    document.getElementById("kpi-saldo").textContent =
+      saldo >= 0 ? `${fmt(saldo)} (A Pagar)` : `${fmt(Math.abs(saldo))} (A Favor)`;
+
+    const porMetodo = {};
+    state.ventas.forEach(v => { porMetodo[v.metodo] = (porMetodo[v.metodo] || 0) + v.total; });
+    const efectivoTotal = porMetodo["Efectivo"] || 0;
+    const totalDepositado = state.depositos.reduce((a, d) => a + d.monto, 0);
+
+    document.getElementById("resumen-caja").innerHTML = Object.keys(porMetodo).length === 0
+      ? "<p style='color:var(--muted)'>Sin movimientos registrados.</p>"
+      : Object.entries(porMetodo).map(([m, t]) =>
+          `<div class="row-flex"><span>${m}:</span><strong>${fmt(t)}</strong></div>`
+        ).join("");
+    document.getElementById("estado-depositos").textContent =
+      `Efectivo en caja pendiente de depositar: ${fmt(efectivoTotal - totalDepositado)} (Depositado: ${fmt(totalDepositado)})`;
+
+    const creditos = state.ventas.filter(v => v.metodo === "Crédito Cliente");
+    document.getElementById("lista-creditos").innerHTML = creditos.length === 0
+      ? "<p style='color:var(--muted)'>Sin saldos pendientes a crédito.</p>"
+      : creditos.map(c => `<div class="list-item"><span>${c.fecha} · <strong>${c.nombre}</strong> (${c.ruc})</span><strong>${fmt(c.total)}</strong></div>`).join("");
+
+    if (state.config) {
+      document.getElementById("cfg-modo").value = state.config.modo || "manual";
+      document.getElementById("cfg-timbrado").value = state.config.timbrado || "";
+      document.getElementById("cfg-exp").value = state.config.exp || "001-001";
+    }
+  }
+
+  document.querySelectorAll("nav button").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+      document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+      document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderAll();
+    };
+  });
+
+  renderAll();
+</script>
+</body>
+</html>
