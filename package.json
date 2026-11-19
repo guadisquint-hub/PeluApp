@@ -1,0 +1,24 @@
+{
+  "name": "peluapp",
+  "version": "1.0.0",
+  "description": "Desarrollada para salones de belleza y spa.",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guadisquint-hub/PeluApp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/guadisquint-hub/PeluApp/issues"
+  },
+  "homepage": "https://github.com/guadisquint-hub/PeluApp#readme",
+  "devDependencies": {
+    "javascript-obfuscator": "^5.10.1"
+  }
+}
