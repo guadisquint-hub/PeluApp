@@ -24,7 +24,7 @@ const obfuscatedResult = JavaScriptObfuscator.obfuscate(rawJs, {
   log: false,
   numbersToExpressions: true,
   renameGlobals: false,
-  selfDefending: true,
+  selfDefending: false,
   simplify: true,
   splitStrings: true,
   splitStringsChunkLength: 8,
