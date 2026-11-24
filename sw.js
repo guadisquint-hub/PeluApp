@@ -1,4 +1,4 @@
-const CACHE_NAME = 'peluapp-v2026-11-19-2';
+const CACHE_NAME = 'peluapp-v2026-11-24-1';
 const ASSETS = [
   './',
   './index.html',
