@@ -4,11 +4,16 @@
   const SUPER_PIN = "202699";
   let superUnlocked = false;
 
+  function isModalVisible(modal) {
+    if (!modal) return false;
+    return window.getComputedStyle(modal).display !== "none";
+  }
+
   function isSuperAdminActive() {
     if (superUnlocked) return true;
     try {
       const panel = document.getElementById("panel-super-admin") || document.getElementById("super-admin-view");
-      if (panel && panel.style.display !== "none" && panel.offsetParent !== null) return true;
+      if (panel && window.getComputedStyle(panel).display !== "none") return true;
       const pinInput = document.getElementById("login-pin");
       if (pinInput && pinInput.value === SUPER_PIN) return true;
     } catch (_) {}
@@ -16,8 +21,6 @@
   }
 
   function promptSuperAdminUnlock() {
-    const modal = document.getElementById("modal-factura-a4");
-    if (!modal || modal.style.display === "none") return;
     if (isSuperAdminActive()) {
       superUnlocked = false;
       const bar = document.getElementById("cal-a4-toolbar");
@@ -26,7 +29,7 @@
       if (zona) zona.classList.remove("cal-editing");
       return;
     }
-    const clave = prompt("Acceso Super Admin · Ingresá tu PIN maestro para calibrar:");
+    const clave = prompt("Acceso Super Admin · Ingresá tu PIN maestro (202699):");
     if (clave === SUPER_PIN) {
       superUnlocked = true;
       ensureToolbar();
@@ -37,99 +40,53 @@
     }
   }
 
-  function bindSecretUnlock() {
+  function ensureSecretGearButton() {
     const modal = document.getElementById("modal-factura-a4");
-    if (!modal || modal.dataset.secretBound) return;
-    modal.dataset.secretBound = "1";
-
-    // 1. Doble clic en la cabecera superior del modal (donde esta el titulo)
-    const card = modal.firstElementChild;
-    const topHeader = card && card.firstElementChild ? card.firstElementChild : modal;
-    topHeader.addEventListener("dblclick", (e) => {
-      if (e.target.closest("button, select, input")) return;
-      promptSuperAdminUnlock();
-    });
-
-    // 2. Triple clic en cualquier parte libre del modal
-    modal.addEventListener("click", (e) => {
-      if (e.detail === 3 && !e.target.closest("button, select, input")) {
-        promptSuperAdminUnlock();
-      }
-    });
+    let btn = document.getElementById("sa-cal-gear-btn");
+    if (!modal || !isModalVisible(modal)) {
+      if (btn) btn.style.display = "none";
+      return;
+    }
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.id = "sa-cal-gear-btn";
+      btn.type = "button";
+      btn.className = "no-print";
+      btn.textContent = "⚙";
+      btn.title = "Calibración Super Admin";
+      btn.style.cssText = [
+        "position:fixed",
+        "bottom:14px",
+        "right:14px",
+        "width:32px",
+        "height:32px",
+        "border-radius:50%",
+        "border:1px solid #d1d5db",
+        "background:rgba(255,255,255,0.85)",
+        "color:#6b7280",
+        "font-size:15px",
+        "cursor:pointer",
+        "z-index:99999",
+        "opacity:0.45",
+        "transition:opacity 0.2s"
+      ].join(";");
+      btn.onmouseenter = () => { btn.style.opacity = "1"; };
+      btn.onmouseleave = () => { btn.style.opacity = "0.45"; };
+      btn.onclick = promptSuperAdminUnlock;
+      document.body.appendChild(btn);
+    }
+    btn.style.display = "block";
   }
 
-  // 3. Atajo de teclado Ctrl + Shift + M cuando el modal esta abierto
   document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && e.shiftKey && (e.key === "M" || e.key === "m")) {
+    if (e.altKey && (e.key === "M" || e.key === "m")) {
       const modal = document.getElementById("modal-factura-a4");
-      if (modal && modal.style.display !== "none") {
+      if (isModalVisible(modal)) {
         e.preventDefault();
         promptSuperAdminUnlock();
       }
     }
   });
-
-
-  function defaultLayout(orient) {
-    const isPort = orient === "portrait";
-    const cTop = isPort ? 148 : 0;
-    const cLeft = isPort ? 0 : 148;
-    return {
-      orientation: orient || "landscape",
-      showCopy: true,
-      fields: {
-        orig_fecha:   { top: 28, left: 24,  label: "Orig · Fecha" },
-        orig_contado: { top: 28, left: 105, label: "Orig · Contado" },
-        orig_credito: { top: 28, left: 126, label: "Orig · Crédito" },
-        orig_cliente: { top: 35, left: 34,  label: "Orig · Cliente" },
-        orig_ruc:     { top: 42, left: 22,  label: "Orig · RUC" },
-        orig_vto:     { top: 42, left: 106, label: "Orig · Vto" },
-        orig_items:   { top: 52, left: 10,  label: "Orig · Tabla Ítems" },
-        orig_letras:  { top: 136, left: 30, label: "Orig · Letras" },
-        orig_total:   { top: 136, left: 118,label: "Orig · Total" },
-        orig_iva10:   { top: 143, left: 46, label: "Orig · IVA 10%" },
-        orig_ivatot:  { top: 143, left: 92, label: "Orig · Total IVA" },
-
-        copy_fecha:   { top: 28 + cTop, left: 24 + cLeft,  label: "Copia · Fecha" },
-        copy_contado: { top: 28 + cTop, left: 105 + cLeft, label: "Copia · Contado" },
-        copy_credito: { top: 28 + cTop, left: 126 + cLeft, label: "Copia · Crédito" },
-        copy_cliente: { top: 35 + cTop, left: 34 + cLeft,  label: "Copia · Cliente" },
-        copy_ruc:     { top: 42 + cTop, left: 22 + cLeft,  label: "Copia · RUC" },
-        copy_vto:     { top: 42 + cTop, left: 106 + cLeft, label: "Copia · Vto" },
-        copy_items:   { top: 52 + cTop, left: 10 + cLeft,  label: "Copia · Tabla Ítems" },
-        copy_letras:  { top: 136 + cTop, left: 30 + cLeft, label: "Copia · Letras" },
-        copy_total:   { top: 136 + cTop, left: 118 + cLeft,label: "Copia · Total" },
-        copy_iva10:   { top: 143 + cTop, left: 46 + cLeft, label: "Copia · IVA 10%" },
-        copy_ivatot:  { top: 143 + cTop, left: 92 + cLeft, label: "Copia · Total IVA" }
-      }
-    };
-  }
-
-  function loadLayout() {
-    try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      const base = defaultLayout((raw && raw.orientation) || "landscape");
-      if (raw && raw.fields) {
-        Object.keys(base.fields).forEach((k) => {
-          if (raw.fields[k]) {
-            base.fields[k].top = Number(raw.fields[k].top ?? base.fields[k].top);
-            base.fields[k].left = Number(raw.fields[k].left ?? base.fields[k].left);
-          }
-        });
-      }
-      if (raw && typeof raw.showCopy === "boolean") base.showCopy = raw.showCopy;
-      return base;
-    } catch (_) {
-      return defaultLayout("landscape");
-    }
-  }
-
-  function saveLayout(layout) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
-    // Si existe boton de guardar configuracion en PeluApp, sincroniza opcionalmente si hay campo vinculado
-    const hiddenSync = document.getElementById("a4-layout-json-sync");
-    if (hiddenSync) hiddenSync.value = JSON.stringify(layout);
-  }
 
   function injectStyles() {
     if (document.getElementById("calibrador-a4-ext-css")) return;
@@ -420,10 +377,11 @@
   }
 
   // Observar cuando PeluApp abre o re-renderiza el modal de factura A4
-  const observer = new MutationObserver(() => {
+  setInterval(() => {
     const modal = document.getElementById("modal-factura-a4");
     const zona = document.getElementById("zona-impresion-a4");
-    if (modal && zona && modal.style.display !== "none" && zona.children.length > 0) {
+    ensureSecretGearButton();
+    if (isModalVisible(modal) && zona && zona.children.length > 0) {
       if (zona.dataset.lastHtml !== zona.innerHTML && !zona.classList.contains("cal-editing")) {
         delete zona.dataset.clonedCopy;
         ensureToolbar();
@@ -431,7 +389,7 @@
         zona.dataset.lastHtml = zona.innerHTML;
       }
     }
-  });
+  }, 500);
 
   window.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("click", (e) => {
