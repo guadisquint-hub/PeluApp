@@ -116,6 +116,7 @@
         border-radius: 3px;
         z-index: 50;
       }
+      #zona-impresion-a4.cal-editing .cal-item * { pointer-events: none !important; }
       #zona-impresion-a4.cal-editing .cal-item:hover {
         outline: 2px solid #db2777 !important;
         background: rgba(219, 39, 119, 0.14) !important;
@@ -153,7 +154,7 @@
 
     // Identificar bloques directos de Original (primera mitad) y Copia (segunda mitad)
     const directChildren = Array.from(zona.children).filter(
-      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items")
+      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items") || Boolean(el.querySelector && el.querySelector(".preimp-items"))
     );
     if (!directChildren.length) return;
 
@@ -168,7 +169,7 @@
     }
 
     const allNodes = Array.from(zona.children).filter(
-      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items")
+      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items") || Boolean(el.querySelector && el.querySelector(".preimp-items"))
     );
 
     // Mapear cada nodo a su clave semantica (fecha, contado, credito, cliente, ruc, vto, items, letras, total, iva10, ivatot)
@@ -177,7 +178,7 @@
       nodes.forEach((el) => {
         el.classList.add("cal-item");
         el.dataset.calGroup = prefix;
-        if (el.classList.contains("preimp-items")) {
+        if (el.classList.contains("preimp-items") || (el.querySelector && el.querySelector(".preimp-items"))) {
           el.dataset.calKey = prefix + "_items";
           return;
         }
