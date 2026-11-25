@@ -43,7 +43,7 @@ const obfuscatedResult = JavaScriptObfuscator.obfuscate(rawJs, {
 });
 
 const finalHtml = srcHtml
-  .replace(scriptRegex, `$1\n${obfuscatedResult.getObfuscatedCode()}\n$3`)
+  .replace(scriptRegex, (_, p1, _p2, p3) => p1 + "\n" + obfuscatedResult.getObfuscatedCode() + "\n" + p3)
   .replace(/<!--[\s\S]*?-->/g, '');
 
 fs.writeFileSync('./index.html', finalHtml, 'utf8');
