@@ -303,8 +303,29 @@
         prepareAndApplyLayout();
       };
 
+      
+      const syncConditionPlaceholders = (editing) => {
+        zona.querySelectorAll(".cal-item").forEach((el) => {
+          const k = el.dataset.calKey || "";
+          if (k.endsWith("_contado") || k.endsWith("_credito")) {
+            if (editing) {
+              if (!el.dataset.realVal) el.dataset.realVal = el.textContent;
+              if (!el.dataset.realVal.trim()) {
+                el.textContent = k.endsWith("_contado") ? "[Cont]" : "[Créd]";
+                el.style.color = "#9333ea";
+              }
+            } else if (el.dataset.realVal !== undefined) {
+              el.textContent = el.dataset.realVal;
+              el.style.color = "";
+              delete el.dataset.realVal;
+            }
+          }
+        });
+      };
+
       dragBtn.onclick = () => {
         const editing = zona.classList.toggle("cal-editing");
+        syncConditionPlaceholders(editing);
         dragBtn.textContent = editing ? "Terminar de Mover" : "Mover Campos (Arrastrar)";
         statusEl.textContent = editing ? "Arrastrá cada dato sobre la hoja" : "Listo";
       };
@@ -320,6 +341,7 @@
         });
         saveLayout(cur);
         zona.classList.remove("cal-editing");
+        syncConditionPlaceholders(false);
         dragBtn.textContent = "Mover Campos (Arrastrar)";
         statusEl.textContent = "Posiciones guardadas";
       };
