@@ -15,35 +15,59 @@
     return false;
   }
 
+  function promptSuperAdminUnlock() {
+    const modal = document.getElementById("modal-factura-a4");
+    if (!modal || modal.style.display === "none") return;
+    if (isSuperAdminActive()) {
+      superUnlocked = false;
+      const bar = document.getElementById("cal-a4-toolbar");
+      const zona = document.getElementById("zona-impresion-a4");
+      if (bar) bar.style.display = "none";
+      if (zona) zona.classList.remove("cal-editing");
+      return;
+    }
+    const clave = prompt("Acceso Super Admin · Ingresá tu PIN maestro para calibrar:");
+    if (clave === SUPER_PIN) {
+      superUnlocked = true;
+      ensureToolbar();
+      const bar = document.getElementById("cal-a4-toolbar");
+      if (bar) bar.style.display = "flex";
+    } else if (clave !== null) {
+      alert("PIN incorrecto.");
+    }
+  }
+
   function bindSecretUnlock() {
     const modal = document.getElementById("modal-factura-a4");
     if (!modal || modal.dataset.secretBound) return;
     modal.dataset.secretBound = "1";
-    const headerTitle = modal.querySelector("h3, h2, strong, div > span") || modal.firstElementChild;
-    if (headerTitle) {
-      headerTitle.title = "";
-      headerTitle.addEventListener("dblclick", () => {
-        if (isSuperAdminActive()) {
-          superUnlocked = false;
-          const bar = document.getElementById("cal-a4-toolbar");
-          const zona = document.getElementById("zona-impresion-a4");
-          if (bar) bar.style.display = "none";
-          if (zona) zona.classList.remove("cal-editing");
-          return;
-        }
-        const clave = prompt("Acceso Super Admin · Ingresá tu PIN maestro para calibrar:");
-        if (clave === SUPER_PIN) {
-          superUnlocked = true;
-          bindSecretUnlock();
-        ensureToolbar();
-          const bar = document.getElementById("cal-a4-toolbar");
-          if (bar) bar.style.display = "flex";
-        } else if (clave !== null) {
-          alert("PIN incorrecto.");
-        }
-      });
-    }
+
+    // 1. Doble clic en la cabecera superior del modal (donde esta el titulo)
+    const card = modal.firstElementChild;
+    const topHeader = card && card.firstElementChild ? card.firstElementChild : modal;
+    topHeader.addEventListener("dblclick", (e) => {
+      if (e.target.closest("button, select, input")) return;
+      promptSuperAdminUnlock();
+    });
+
+    // 2. Triple clic en cualquier parte libre del modal
+    modal.addEventListener("click", (e) => {
+      if (e.detail === 3 && !e.target.closest("button, select, input")) {
+        promptSuperAdminUnlock();
+      }
+    });
   }
+
+  // 3. Atajo de teclado Ctrl + Shift + M cuando el modal esta abierto
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey && (e.key === "M" || e.key === "m")) {
+      const modal = document.getElementById("modal-factura-a4");
+      if (modal && modal.style.display !== "none") {
+        e.preventDefault();
+        promptSuperAdminUnlock();
+      }
+    }
+  });
 
 
   function defaultLayout(orient) {
