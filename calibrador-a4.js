@@ -172,33 +172,29 @@
   function prepareAndApplyLayout() {
     const zona = document.getElementById("zona-impresion-a4");
     if (!zona) return;
-    const layout = loadLayout();
+    const layout = getSavedA4Layout();
 
     zona.classList.toggle("cal-portrait", layout.orientation === "portrait");
     zona.classList.toggle("cal-landscape", layout.orientation !== "portrait");
     applyPageOrientationCSS(layout.orientation);
 
-    // Identificar bloques directos de Original (primera mitad) y Copia (segunda mitad)
-    const directChildren = Array.from(zona.children).filter(
-      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items") || Boolean(el.querySelector && el.querySelector(".preimp-items"))
+    // 1. Eliminar clones previos si se re-renderizo el original
+    zona.querySelectorAll("[data-is-copy-clone='1']").forEach((n) => n.remove());
+
+    // 2. Obtener los elementos base renderizados por PeluApp (Original)
+    const origNodes = Array.from(zona.children).filter(
+      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items") || (el.querySelector && el.querySelector(".preimp-items"))
     );
-    if (!directChildren.length) return;
+    if (!origNodes.length) return;
 
-    // Si solo renderizo el Original (11 elementos), clonamos el bloque para tener Copia editable a la derecha/abajo
-    if (directChildren.length <= 12 && !zona.dataset.clonedCopy) {
-      directChildren.forEach((el) => {
-        const clone = el.cloneNode(true);
-        clone.dataset.isCopyClone = "1";
-        zona.appendChild(clone);
-      });
-      zona.dataset.clonedCopy = "1";
-    }
+    // 3. Crear siempre una copia limpia para el lado derecho (apaisado) o inferior (vertical)
+    const copyNodes = origNodes.map((el) => {
+      const clone = el.cloneNode(true);
+      clone.dataset.isCopyClone = "1";
+      zona.appendChild(clone);
+      return clone;
+    });
 
-    const allNodes = Array.from(zona.children).filter(
-      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items") || Boolean(el.querySelector && el.querySelector(".preimp-items"))
-    );
-
-    // Mapear cada nodo a su clave semantica (fecha, contado, credito, cliente, ruc, vto, items, letras, total, iva10, ivatot)
     const assignKeys = (nodes, prefix) => {
       let ivaCount = 0;
       nodes.forEach((el) => {
@@ -214,10 +210,8 @@
 
         if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(txt) && topVal < 60) {
           el.dataset.calKey = prefix + "_fecha";
-        } else if (txt === "X" && leftVal > 70 && topVal < 50) {
-          el.dataset.calKey = prefix + (leftVal < 112 ? "_contado" : "_credito");
-        } else if (txt === "" && leftVal > 70 && topVal < 50) {
-          el.dataset.calKey = prefix + (leftVal < 112 ? "_contado" : "_credito");
+        } else if ((txt === "X" || txt === "") && leftVal > 70 && topVal < 50) {
+          el.dataset.calKey = prefix + (leftVal < 115 ? "_contado" : "_credito");
         } else if (el.style.width === "84mm" || /[A-ZÁÉÍÓÚÑ]{4,}\s+GUARAN/i.test(txt)) {
           el.dataset.calKey = prefix + "_letras";
         } else if (el.style.width === "24mm") {
@@ -235,15 +229,11 @@
       });
     };
 
-    const half = Math.ceil(allNodes.length / 2);
-    const origNodes = allNodes.filter((n) => !n.dataset.isCopyClone).slice(0, half);
-    const copyNodes = allNodes.filter((n) => n.dataset.isCopyClone || allNodes.indexOf(n) >= half);
-
     assignKeys(origNodes, "orig");
     assignKeys(copyNodes, "copy");
 
-    // Aplicar coordenadas guardadas
-    allNodes.forEach((el) => {
+    // 4. Aplicar posiciones guardadas de Original y Copia
+    [...origNodes, ...copyNodes].forEach((el) => {
       const k = el.dataset.calKey;
       const isCopy = el.dataset.calGroup === "copy";
       el.style.display = isCopy && !layout.showCopy ? "none" : "";
@@ -403,12 +393,14 @@
     const modal = document.getElementById("modal-factura-a4");
     const zona = document.getElementById("zona-impresion-a4");
     ensureSecretGearButton();
+    if (!isModalVisible(modal) && zona) {
+      delete zona.dataset.calApplied;
+    }
     if (isModalVisible(modal) && zona && zona.children.length > 0) {
-      if (zona.dataset.lastHtml !== zona.innerHTML && !zona.classList.contains("cal-editing")) {
-        delete zona.dataset.clonedCopy;
+      if (!zona.dataset.calApplied && !zona.classList.contains("cal-editing")) {
+        zona.dataset.calApplied = "1";
         ensureToolbar();
         prepareAndApplyLayout();
-        zona.dataset.lastHtml = zona.innerHTML;
       }
     }
   }, 500);
