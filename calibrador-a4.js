@@ -1,6 +1,51 @@
 (function () {
   const STORAGE_KEY = "peluapp_a4_layout_v1";
 
+  const SUPER_PIN = "202699";
+  let superUnlocked = false;
+
+  function isSuperAdminActive() {
+    if (superUnlocked) return true;
+    try {
+      const panel = document.getElementById("panel-super-admin") || document.getElementById("super-admin-view");
+      if (panel && panel.style.display !== "none" && panel.offsetParent !== null) return true;
+      const pinInput = document.getElementById("login-pin");
+      if (pinInput && pinInput.value === SUPER_PIN) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  function bindSecretUnlock() {
+    const modal = document.getElementById("modal-factura-a4");
+    if (!modal || modal.dataset.secretBound) return;
+    modal.dataset.secretBound = "1";
+    const headerTitle = modal.querySelector("h3, h2, strong, div > span") || modal.firstElementChild;
+    if (headerTitle) {
+      headerTitle.title = "";
+      headerTitle.addEventListener("dblclick", () => {
+        if (isSuperAdminActive()) {
+          superUnlocked = false;
+          const bar = document.getElementById("cal-a4-toolbar");
+          const zona = document.getElementById("zona-impresion-a4");
+          if (bar) bar.style.display = "none";
+          if (zona) zona.classList.remove("cal-editing");
+          return;
+        }
+        const clave = prompt("Acceso Super Admin · Ingresá tu PIN maestro para calibrar:");
+        if (clave === SUPER_PIN) {
+          superUnlocked = true;
+          bindSecretUnlock();
+        ensureToolbar();
+          const bar = document.getElementById("cal-a4-toolbar");
+          if (bar) bar.style.display = "flex";
+        } else if (clave !== null) {
+          alert("PIN incorrecto.");
+        }
+      });
+    }
+  }
+
+
   function defaultLayout(orient) {
     const isPort = orient === "portrait";
     const cTop = isPort ? 148 : 0;
@@ -343,6 +388,10 @@
 
     const layout = loadLayout();
     document.getElementById("cal-a4-orient").value = layout.orientation;
+    bar.style.display = isSuperAdminActive() ? "flex" : "none";
+    if (!isSuperAdminActive()) {
+      zona.classList.remove("cal-editing");
+    }
     document.getElementById("cal-a4-copy").checked = layout.showCopy;
   }
 
@@ -361,6 +410,15 @@
   });
 
   window.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("click", (e) => {
+      if (e.target && /cerrar/i.test(e.target.textContent || "")) {
+        superUnlocked = false;
+        const bar = document.getElementById("cal-a4-toolbar");
+        const zona = document.getElementById("zona-impresion-a4");
+        if (bar) bar.style.display = "none";
+        if (zona) zona.classList.remove("cal-editing");
+      }
+    });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style"] });
   });
 })();
