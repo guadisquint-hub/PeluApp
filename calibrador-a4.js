@@ -213,19 +213,15 @@
     zona.classList.toggle("cal-landscape", layout.orientation !== "portrait");
     applyPageOrientationCSS(layout.orientation);
 
-    // Eliminar clones previos
     zona.querySelectorAll("[data-is-copy-clone='1']").forEach((n) => n.remove());
 
-    // Obtener todos los bloques directos (sin importar clase)
     const rawChildren = Array.from(zona.children).filter((el) => el.nodeType === 1);
     if (!rawChildren.length) return;
 
-    // Si PeluApp ya genero dos bloques (Original y Copia), nos quedamos con la primera mitad como Original
     const half = rawChildren.length > 14 ? Math.ceil(rawChildren.length / 2) : rawChildren.length;
     const origNodes = rawChildren.slice(0, half);
     rawChildren.slice(half).forEach((n) => n.remove());
 
-    // Clonar cada elemento del Original para crear la Copia
     const copyNodes = origNodes.map((el) => {
       const clone = el.cloneNode(true);
       clone.dataset.isCopyClone = "1";
