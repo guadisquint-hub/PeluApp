@@ -1,8 +1,65 @@
 (function () {
-  const STORAGE_KEY = "peluapp_a4_layout_v1";
-
+  const STORAGE_KEY = "peluapp_a4_layout_v2";
   const SUPER_PIN = "202699";
   let superUnlocked = false;
+
+  function defaultLayout(orient) {
+    const isPort = orient === "portrait";
+    const cTop = isPort ? 148 : 0;
+    const cLeft = isPort ? 0 : 148;
+    return {
+      orientation: orient || "landscape",
+      showCopy: true,
+      fields: {
+        orig_fecha:   { top: 28, left: 24,  label: "Orig · Fecha" },
+        orig_contado: { top: 28, left: 105, label: "Orig · Contado" },
+        orig_credito: { top: 28, left: 126, label: "Orig · Crédito" },
+        orig_cliente: { top: 35, left: 34,  label: "Orig · Cliente" },
+        orig_ruc:     { top: 42, left: 22,  label: "Orig · RUC" },
+        orig_vto:     { top: 42, left: 106, label: "Orig · Vto" },
+        orig_items:   { top: 52, left: 10,  label: "Orig · Tabla Ítems" },
+        orig_letras:  { top: 136, left: 30, label: "Orig · Letras" },
+        orig_total:   { top: 136, left: 118,label: "Orig · Total" },
+        orig_iva10:   { top: 143, left: 46, label: "Orig · IVA 10%" },
+        orig_ivatot:  { top: 143, left: 92, label: "Orig · Total IVA" },
+
+        copy_fecha:   { top: 28 + cTop, left: 24 + cLeft,  label: "Copia · Fecha" },
+        copy_contado: { top: 28 + cTop, left: 105 + cLeft, label: "Copia · Contado" },
+        copy_credito: { top: 28 + cTop, left: 126 + cLeft, label: "Copia · Crédito" },
+        copy_cliente: { top: 35 + cTop, left: 34 + cLeft,  label: "Copia · Cliente" },
+        copy_ruc:     { top: 42 + cTop, left: 22 + cLeft,  label: "Copia · RUC" },
+        copy_vto:     { top: 42 + cTop, left: 106 + cLeft, label: "Copia · Vto" },
+        copy_items:   { top: 52 + cTop, left: 10 + cLeft,  label: "Copia · Tabla Ítems" },
+        copy_letras:  { top: 136 + cTop, left: 30 + cLeft, label: "Copia · Letras" },
+        copy_total:   { top: 136 + cTop, left: 118 + cLeft,label: "Copia · Total" },
+        copy_iva10:   { top: 143 + cTop, left: 46 + cLeft, label: "Copia · IVA 10%" },
+        copy_ivatot:  { top: 143 + cTop, left: 92 + cLeft, label: "Copia · Total IVA" }
+      }
+    };
+  }
+
+  function loadLayout() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      const base = defaultLayout((raw && raw.orientation) || "landscape");
+      if (raw && raw.fields) {
+        Object.keys(base.fields).forEach((k) => {
+          if (raw.fields[k]) {
+            base.fields[k].top = Number(raw.fields[k].top ?? base.fields[k].top);
+            base.fields[k].left = Number(raw.fields[k].left ?? base.fields[k].left);
+          }
+        });
+      }
+      base.showCopy = (raw && raw.showCopy === false) ? false : true;
+      return base;
+    } catch (_) {
+      return defaultLayout("landscape");
+    }
+  }
+
+  function saveLayout(layout) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+  }
 
   function isModalVisible(modal) {
     if (!modal) return false;
@@ -54,39 +111,12 @@
       btn.className = "no-print";
       btn.textContent = "⚙";
       btn.title = "Calibración Super Admin";
-      btn.style.cssText = [
-        "position:fixed",
-        "bottom:14px",
-        "right:14px",
-        "width:32px",
-        "height:32px",
-        "border-radius:50%",
-        "border:1px solid #d1d5db",
-        "background:rgba(255,255,255,0.85)",
-        "color:#6b7280",
-        "font-size:15px",
-        "cursor:pointer",
-        "z-index:99999",
-        "opacity:0.45",
-        "transition:opacity 0.2s"
-      ].join(";");
-      btn.onmouseenter = () => { btn.style.opacity = "1"; };
-      btn.onmouseleave = () => { btn.style.opacity = "0.45"; };
+      btn.style.cssText = "position:fixed;bottom:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid #d1d5db;background:#fff;color:#4b5563;font-size:16px;cursor:pointer;z-index:99999;box-shadow:0 2px 8px rgba(0,0,0,0.18);";
       btn.onclick = promptSuperAdminUnlock;
       document.body.appendChild(btn);
     }
     btn.style.display = "block";
   }
-
-  document.addEventListener("keydown", (e) => {
-    if (e.altKey && (e.key === "M" || e.key === "m")) {
-      const modal = document.getElementById("modal-factura-a4");
-      if (isModalVisible(modal)) {
-        e.preventDefault();
-        promptSuperAdminUnlock();
-      }
-    }
-  });
 
   function injectStyles() {
     if (document.getElementById("calibrador-a4-ext-css")) return;
@@ -120,6 +150,10 @@
         color: #6d28d9;
         font-weight: 600;
       }
+      #zona-impresion-a4 {
+        position: relative !important;
+        overflow: visible !important;
+      }
       #zona-impresion-a4.cal-portrait {
         width: 210mm !important;
         height: 297mm !important;
@@ -142,13 +176,15 @@
         border-radius: 3px;
         z-index: 50;
       }
-      #zona-impresion-a4.cal-editing .cal-item * { pointer-events: none !important; }
+      #zona-impresion-a4.cal-editing .cal-item * {
+        pointer-events: none !important;
+      }
       #zona-impresion-a4.cal-editing .cal-item:hover {
         outline: 2px solid #db2777 !important;
         background: rgba(219, 39, 119, 0.14) !important;
       }
       @media print {
-        #cal-a4-toolbar { display: none !important; }
+        #cal-a4-toolbar, #sa-cal-gear-btn { display: none !important; }
         #zona-impresion-a4 .cal-item {
           outline: none !important;
           background: transparent !important;
@@ -168,32 +204,28 @@
     st.textContent = `@media print { @page { size: A4 ${orient}; margin: 0; } }`;
   }
 
-  // Convierte los elementos renderizados dentro de #zona-impresion-a4 en bloques individuales arrastrables
   function prepareAndApplyLayout() {
     const zona = document.getElementById("zona-impresion-a4");
     if (!zona) return;
-    const layout = getSavedA4Layout();
+    const layout = loadLayout();
 
     zona.classList.toggle("cal-portrait", layout.orientation === "portrait");
     zona.classList.toggle("cal-landscape", layout.orientation !== "portrait");
     applyPageOrientationCSS(layout.orientation);
 
-    // 1. Limpiar clones previos
+    // Eliminar clones previos
     zona.querySelectorAll("[data-is-copy-clone='1']").forEach((n) => n.remove());
 
-    // 2. Tomar todos los elementos posicionados dentro de #zona-impresion-a4
-    const allDirect = Array.from(zona.children).filter(
-      (el) => el.tagName === "DIV" || el.tagName === "TABLE"
-    );
-    if (!allDirect.length) return;
+    // Obtener todos los bloques directos (sin importar clase)
+    const rawChildren = Array.from(zona.children).filter((el) => el.nodeType === 1);
+    if (!rawChildren.length) return;
 
-    // Si PeluApp ya renderizo 2 mitades (mas de 15 elementos), tomamos solo la primera mitad como Original
-    const origNodes = allDirect.length > 15 ? allDirect.slice(0, Math.ceil(allDirect.length / 2)) : allDirect;
-    if (allDirect.length > 15) {
-      allDirect.slice(Math.ceil(allDirect.length / 2)).forEach((n) => n.remove());
-    }
+    // Si PeluApp ya genero dos bloques (Original y Copia), nos quedamos con la primera mitad como Original
+    const half = rawChildren.length > 14 ? Math.ceil(rawChildren.length / 2) : rawChildren.length;
+    const origNodes = rawChildren.slice(0, half);
+    rawChildren.slice(half).forEach((n) => n.remove());
 
-    // 3. Clonar cada elemento del Original para crear la Copia derecha/inferior
+    // Clonar cada elemento del Original para crear la Copia
     const copyNodes = origNodes.map((el) => {
       const clone = el.cloneNode(true);
       clone.dataset.isCopyClone = "1";
@@ -206,7 +238,7 @@
       nodes.forEach((el) => {
         el.classList.add("cal-item");
         el.dataset.calGroup = prefix;
-        if (el.classList.contains("preimp-items") || el.tagName === "TABLE" || (el.querySelector && el.querySelector(".preimp-items, table"))) {
+        if (el.classList.contains("preimp-items") || el.tagName === "TABLE" || el.querySelector("table, .preimp-items")) {
           el.dataset.calKey = prefix + "_items";
           return;
         }
@@ -244,16 +276,17 @@
     [...origNodes, ...copyNodes].forEach((el) => {
       const k = el.dataset.calKey;
       const isCopy = el.dataset.calGroup === "copy";
-      el.style.setProperty("display", isCopy && !layout.showCopy ? "none" : "block", "important");
-      el.style.setProperty("visibility", isCopy && !layout.showCopy ? "hidden" : "visible", "important");
+      el.style.display = isCopy && !layout.showCopy ? "none" : "block";
+      el.style.visibility = isCopy && !layout.showCopy ? "hidden" : "visible";
 
       if (k && layout.fields[k]) {
         let t = Number(layout.fields[k].top);
         let l = Number(layout.fields[k].left);
-        // Si es copia en apaisado y por error quedo a la izquierda (< 130mm), moverla a la mitad derecha
         if (isCopy && layout.orientation !== "portrait" && l < 130) {
-          l = l + cLeftOffset;
-          layout.fields[k].left = l;
+          l += cLeftOffset;
+        }
+        if (isCopy && layout.orientation === "portrait" && t < 130) {
+          t += cTopOffset;
         }
         el.style.top = t + "mm";
         el.style.left = l + "mm";
@@ -273,7 +306,7 @@
       bar.className = "no-print";
       bar.innerHTML = `
         <strong>Plantilla del Salón:</strong>
-        <select id="cal-a4-orient" title="Orientación de la hoja A4">
+        <select id="cal-a4-orient">
           <option value="landscape">A4 Apaisado (297×210 mm · Izq / Der)</option>
           <option value="portrait">A4 Vertical (210×297 mm · Arriba / Abajo)</option>
         </select>
@@ -294,6 +327,25 @@
       const resetBtn = document.getElementById("cal-a4-reset-btn");
       const statusEl = document.getElementById("cal-a4-status");
 
+      const syncConditionPlaceholders = (editing) => {
+        zona.querySelectorAll(".cal-item").forEach((el) => {
+          const k = el.dataset.calKey || "";
+          if (k.endsWith("_contado") || k.endsWith("_credito")) {
+            if (editing) {
+              if (el.dataset.realVal === undefined) el.dataset.realVal = el.textContent;
+              if (!el.dataset.realVal.trim()) {
+                el.textContent = k.endsWith("_contado") ? "[Cont]" : "[Créd]";
+                el.style.color = "#9333ea";
+              }
+            } else if (el.dataset.realVal !== undefined) {
+              el.textContent = el.dataset.realVal;
+              el.style.color = "";
+              delete el.dataset.realVal;
+            }
+          }
+        });
+      };
+
       orientSel.onchange = () => {
         const cur = loadLayout();
         const fresh = defaultLayout(orientSel.value);
@@ -308,26 +360,6 @@
         cur.showCopy = copyChk.checked;
         saveLayout(cur);
         prepareAndApplyLayout();
-      };
-
-      
-      const syncConditionPlaceholders = (editing) => {
-        zona.querySelectorAll(".cal-item").forEach((el) => {
-          const k = el.dataset.calKey || "";
-          if (k.endsWith("_contado") || k.endsWith("_credito")) {
-            if (editing) {
-              if (!el.dataset.realVal) el.dataset.realVal = el.textContent;
-              if (!el.dataset.realVal.trim()) {
-                el.textContent = k.endsWith("_contado") ? "[Cont]" : "[Créd]";
-                el.style.color = "#9333ea";
-              }
-            } else if (el.dataset.realVal !== undefined) {
-              el.textContent = el.dataset.realVal;
-              el.style.color = "";
-              delete el.dataset.realVal;
-            }
-          }
-        });
       };
 
       dragBtn.onclick = () => {
@@ -360,7 +392,6 @@
         statusEl.textContent = "Valores restaurados";
       };
 
-      // Drag & Drop en milimetros reales sobre #zona-impresion-a4
       let dragging = null, sX = 0, sY = 0, oTop = 0, oLeft = 0, pxMmX = 3.78, pxMmY = 3.78;
       zona.addEventListener("pointerdown", (e) => {
         if (!zona.classList.contains("cal-editing")) return;
@@ -398,40 +429,22 @@
 
     const layout = loadLayout();
     document.getElementById("cal-a4-orient").value = layout.orientation;
-    bar.style.display = isSuperAdminActive() ? "flex" : "none";
-    if (!isSuperAdminActive()) {
-      zona.classList.remove("cal-editing");
-    }
     document.getElementById("cal-a4-copy").checked = layout.showCopy;
+    bar.style.display = isSuperAdminActive() ? "flex" : "none";
   }
 
-  // Observar cuando PeluApp abre o re-renderiza el modal de factura A4
   setInterval(() => {
     const modal = document.getElementById("modal-factura-a4");
     const zona = document.getElementById("zona-impresion-a4");
     ensureSecretGearButton();
-    if (!isModalVisible(modal) && zona) {
-      delete zona.dataset.calApplied;
-    }
     if (isModalVisible(modal) && zona && zona.children.length > 0) {
       if (!zona.dataset.calApplied && !zona.classList.contains("cal-editing")) {
         zona.dataset.calApplied = "1";
         ensureToolbar();
         prepareAndApplyLayout();
       }
+    } else if (zona) {
+      delete zona.dataset.calApplied;
     }
-  }, 500);
-
-  window.addEventListener("DOMContentLoaded", () => {
-    document.addEventListener("click", (e) => {
-      if (e.target && /cerrar/i.test(e.target.textContent || "")) {
-        superUnlocked = false;
-        const bar = document.getElementById("cal-a4-toolbar");
-        const zona = document.getElementById("zona-impresion-a4");
-        if (bar) bar.style.display = "none";
-        if (zona) zona.classList.remove("cal-editing");
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style"] });
-  });
+  }, 400);
 })();
