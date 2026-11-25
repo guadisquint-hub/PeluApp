@@ -178,16 +178,22 @@
     zona.classList.toggle("cal-landscape", layout.orientation !== "portrait");
     applyPageOrientationCSS(layout.orientation);
 
-    // 1. Eliminar clones previos si se re-renderizo el original
+    // 1. Limpiar clones previos
     zona.querySelectorAll("[data-is-copy-clone='1']").forEach((n) => n.remove());
 
-    // 2. Obtener los elementos base renderizados por PeluApp (Original)
-    const origNodes = Array.from(zona.children).filter(
-      (el) => el.classList.contains("preimp-field") || el.classList.contains("preimp-items") || (el.querySelector && el.querySelector(".preimp-items"))
+    // 2. Tomar todos los elementos posicionados dentro de #zona-impresion-a4
+    const allDirect = Array.from(zona.children).filter(
+      (el) => el.tagName === "DIV" || el.tagName === "TABLE"
     );
-    if (!origNodes.length) return;
+    if (!allDirect.length) return;
 
-    // 3. Crear siempre una copia limpia para el lado derecho (apaisado) o inferior (vertical)
+    // Si PeluApp ya renderizo 2 mitades (mas de 15 elementos), tomamos solo la primera mitad como Original
+    const origNodes = allDirect.length > 15 ? allDirect.slice(0, Math.ceil(allDirect.length / 2)) : allDirect;
+    if (allDirect.length > 15) {
+      allDirect.slice(Math.ceil(allDirect.length / 2)).forEach((n) => n.remove());
+    }
+
+    // 3. Clonar cada elemento del Original para crear la Copia derecha/inferior
     const copyNodes = origNodes.map((el) => {
       const clone = el.cloneNode(true);
       clone.dataset.isCopyClone = "1";
@@ -200,7 +206,7 @@
       nodes.forEach((el) => {
         el.classList.add("cal-item");
         el.dataset.calGroup = prefix;
-        if (el.classList.contains("preimp-items") || (el.querySelector && el.querySelector(".preimp-items"))) {
+        if (el.classList.contains("preimp-items") || el.tagName === "TABLE" || (el.querySelector && el.querySelector(".preimp-items, table"))) {
           el.dataset.calKey = prefix + "_items";
           return;
         }
@@ -232,14 +238,25 @@
     assignKeys(origNodes, "orig");
     assignKeys(copyNodes, "copy");
 
-    // 4. Aplicar posiciones guardadas de Original y Copia
+    const cTopOffset = layout.orientation === "portrait" ? 148 : 0;
+    const cLeftOffset = layout.orientation === "portrait" ? 0 : 148;
+
     [...origNodes, ...copyNodes].forEach((el) => {
       const k = el.dataset.calKey;
       const isCopy = el.dataset.calGroup === "copy";
-      el.style.display = isCopy && !layout.showCopy ? "none" : "";
+      el.style.setProperty("display", isCopy && !layout.showCopy ? "none" : "block", "important");
+      el.style.setProperty("visibility", isCopy && !layout.showCopy ? "hidden" : "visible", "important");
+
       if (k && layout.fields[k]) {
-        el.style.top = layout.fields[k].top + "mm";
-        el.style.left = layout.fields[k].left + "mm";
+        let t = Number(layout.fields[k].top);
+        let l = Number(layout.fields[k].left);
+        // Si es copia en apaisado y por error quedo a la izquierda (< 130mm), moverla a la mitad derecha
+        if (isCopy && layout.orientation !== "portrait" && l < 130) {
+          l = l + cLeftOffset;
+          layout.fields[k].left = l;
+        }
+        el.style.top = t + "mm";
+        el.style.left = l + "mm";
       }
     });
   }
