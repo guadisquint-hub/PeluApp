@@ -444,4 +444,29 @@
       delete zona.dataset.calApplied;
     }
   }, 400);
+
+  (function ensureLogoutInCalibratorBar() {
+    const attach = () => {
+      if (document.getElementById("btn-cal-logout-final")) return;
+      const btnRestaurar = Array.from(document.querySelectorAll("button")).find(
+        (b) => b.textContent && b.textContent.trim() === "Restaurar"
+      );
+      if (btnRestaurar && btnRestaurar.parentElement) {
+        const btnSalir = document.createElement("button");
+        btnSalir.id = "btn-cal-logout-final";
+        btnSalir.type = "button";
+        btnSalir.textContent = "🔒 Cerrar Admin";
+        btnSalir.style.cssText = "padding:6px 12px; border:none; border-radius:6px; background:#dc2626; color:#ffffff; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;";
+        btnSalir.onclick = () => {
+          superUnlocked = false;
+          if (typeof window.cerrarSesionSuperAdmin === "function") {
+            window.cerrarSesionSuperAdmin();
+          }
+        };
+        btnRestaurar.insertAdjacentElement("afterend", btnSalir);
+      }
+    };
+    setInterval(attach, 600);
+  })();
+
 })();
