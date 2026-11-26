@@ -404,20 +404,41 @@
     };
   }
 
+  let vistasOcultadas = [];
+
+  function restaurarVistasNativas() {
+    const sec = document.getElementById("vista-turnos-salon");
+    if (sec) sec.style.display = "none";
+    vistasOcultadas.forEach(({ el, prevDisplay }) => {
+      el.style.display = prevDisplay;
+    });
+    vistasOcultadas = [];
+  }
+
   function mostrarVistaTurnos() {
     construirVistaTurnos();
-    // Ocultar vistas hermanas sin destruir sus eventos
-    document.querySelectorAll('[id^="vista-"], [id^="tab-"]').forEach((el) => {
-      if (el.id !== "vista-turnos-salon") el.style.display = "none";
-    });
     const sec = document.getElementById("vista-turnos-salon");
-    if (sec) sec.style.display = "block";
+    if (!sec) return;
+    if (sec.style.display === "block") {
+      renderTurnos();
+      return;
+    }
+    vistasOcultadas = [];
+    Array.from(sec.parentElement.children).forEach((el) => {
+      if (el === sec) return;
+      if (el.tagName === "NAV" || el.tagName === "HEADER" || el.id === "modal-superadmin-auth") return;
+      const computed = window.getComputedStyle(el).display;
+      if (computed !== "none") {
+        vistasOcultadas.push({ el, prevDisplay: el.style.display });
+        el.style.display = "none";
+      }
+    });
+    sec.style.display = "block";
     renderTurnos();
   }
 
   function inyectarBotonPestana() {
     if (document.getElementById("nav-btn-turnos")) return;
-    // Buscar la barra de navegación superior de pestañas (donde está Caja / Ventas / Clientes / Servicios)
     const navButtons = Array.from(document.querySelectorAll("nav button, header button, .tab-btn, [data-tab], [onclick*='mostrarVista'], [onclick*='cambiarTab']"));
     const refBtn = navButtons.find((b) => /caja|ventas|clientes|servicios|reportes/i.test(b.textContent || ""));
     if (!refBtn || !refBtn.parentElement) return;
@@ -432,16 +453,14 @@
       mostrarVistaTurnos();
     };
 
-    // Cuando se toca cualquier otra pestaña nativa, ocultar la vista de Turnos
-    Array.from(refBtn.parentElement.children).forEach((sib) => {
-      if (sib !== btn && !sib.dataset.turnosHooked) {
-        sib.dataset.turnosHooked = "1";
-        sib.addEventListener("click", () => {
-          const sec = document.getElementById("vista-turnos-salon");
-          if (sec) sec.style.display = "none";
-        });
+    // En fase de captura (true), restaurar las vistas nativas ANTES de que la app cambie a la pestaña tocada
+    document.addEventListener("click", (ev) => {
+      const clickedNav = ev.target && ev.target.closest("button, [data-tab]");
+      if (!clickedNav || clickedNav.id === "nav-btn-turnos") return;
+      if (refBtn.parentElement.contains(clickedNav)) {
+        restaurarVistasNativas();
       }
-    });
+    }, true);
 
     refBtn.parentElement.appendChild(btn);
   }
