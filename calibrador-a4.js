@@ -445,9 +445,16 @@
     }
   }, 400);
 
+  
   (function ensureLogoutInCalibratorBar() {
-    const attach = () => {
-      if (document.getElementById("btn-cal-logout-final")) return;
+    setInterval(() => {
+      const isAdmin = Boolean(window.__isSuperAdmin || superUnlocked);
+      const existing = document.getElementById("btn-cal-logout-final");
+      if (!isAdmin) {
+        if (existing) existing.remove();
+        return;
+      }
+      if (existing) return;
       const btnRestaurar = Array.from(document.querySelectorAll("button")).find(
         (b) => b.textContent && b.textContent.trim() === "Restaurar"
       );
@@ -456,7 +463,7 @@
         btnSalir.id = "btn-cal-logout-final";
         btnSalir.type = "button";
         btnSalir.textContent = "🔒 Cerrar Admin";
-        btnSalir.style.cssText = "padding:6px 12px; border:none; border-radius:6px; background:#dc2626; color:#ffffff; font-size:12px; font-weight:700; cursor:pointer; margin-left:8px;";
+        btnSalir.style.cssText = "padding:5px 11px; border:none; border-radius:6px; background:#dc2626; color:#ffffff; font-size:11px; font-weight:700; cursor:pointer; margin-left:8px;";
         btnSalir.onclick = () => {
           superUnlocked = false;
           if (typeof window.cerrarSesionSuperAdmin === "function") {
@@ -465,8 +472,7 @@
         };
         btnRestaurar.insertAdjacentElement("afterend", btnSalir);
       }
-    };
-    setInterval(attach, 600);
+    }, 400);
   })();
 
 })();
