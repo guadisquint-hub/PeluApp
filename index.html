@@ -2785,7 +2785,7 @@
 
     banner.innerHTML =
       "<span>⚠️ " + textoEstado + (vigObj.plan ? " · Plan: " + vigObj.plan : "") + "</span>" +
-      '<span style=\"font-size:11px;font-weight:600;opacity:0.85;\">Licencia: ' + lic + '</span>';
+      '<span style="font-size:11px;font-weight:600;opacity:0.85;">Licencia: ' + esc(s.licencia || "") + '</span>' +
 
     if (!existente) {
       const ancla = document.querySelector("nav") || document.querySelector("header") || document.body.firstElementChild;
