@@ -404,34 +404,25 @@
     };
   }
 
-  let vistasOcultadas = [];
-
-  function restaurarVistasNativas() {
+  function cerrarVistaTurnos() {
     const sec = document.getElementById("vista-turnos-salon");
     if (sec) sec.style.display = "none";
-    vistasOcultadas.forEach(({ el, prevDisplay }) => {
-      el.style.display = prevDisplay;
-    });
-    vistasOcultadas = [];
   }
 
   function mostrarVistaTurnos() {
     construirVistaTurnos();
     const sec = document.getElementById("vista-turnos-salon");
     if (!sec) return;
-    const padre = sec.parentElement;
-    vistasOcultadas = [];
-    Array.from(padre.children).forEach((el) => {
-      if (el === sec) return;
-      if (el.tagName === "NAV" || el.tagName === "HEADER" || el.id === "modal-superadmin-auth") return;
-      const computed = window.getComputedStyle(el).display;
-      if (computed !== "none") {
-        vistasOcultadas.push({ el, prevDisplay: el.style.display });
-        el.style.display = "none";
+    // Ajustar el borde superior exactamente debajo de la barra de navegación visible
+    const navBar = document.querySelector("header") || document.querySelector("nav");
+    if (navBar) {
+      const rect = navBar.getBoundingClientRect();
+      if (rect.bottom > 0 && rect.bottom < 200) {
+        sec.style.top = rect.bottom + "px";
       }
-    });
+    }
     sec.style.display = "block";
-    sec.scrollIntoView({ behavior: "smooth", block: "start" });
+    sec.scrollTop = 0;
     renderTurnos();
   }
 
@@ -448,15 +439,17 @@
     btn.textContent = "📅 Turnos";
     btn.onclick = (e) => {
       e.preventDefault();
+      e.stopPropagation();
       mostrarVistaTurnos();
     };
 
-    // En fase de captura (true), restaurar las vistas nativas ANTES de que la app cambie a la pestaña tocada
+    // Cualquier clic en otro botón de navegación cierra Turnos al instante
     document.addEventListener("click", (ev) => {
-      const clickedNav = ev.target && ev.target.closest("button, [data-tab]");
-      if (!clickedNav || clickedNav.id === "nav-btn-turnos") return;
-      if (refBtn.parentElement.contains(clickedNav)) {
-        restaurarVistasNativas();
+      const clickedBtn = ev.target && ev.target.closest("button, a, [data-tab]");
+      if (!clickedBtn || clickedBtn.id === "nav-btn-turnos") return;
+      const sec = document.getElementById("vista-turnos-salon");
+      if (sec && sec.style.display === "block" && !sec.contains(clickedBtn)) {
+        cerrarVistaTurnos();
       }
     }, true);
 
