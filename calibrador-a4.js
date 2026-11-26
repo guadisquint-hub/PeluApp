@@ -1,6 +1,6 @@
 (function () {
   const STORAGE_KEY = "peluapp_a4_layout_v2";
-  const SUPER_PIN = "202699";
+  // Auth delegada a Firebase Auth
   let superUnlocked = false;
 
   function defaultLayout(orient) {
@@ -67,12 +67,10 @@
   }
 
   function isSuperAdminActive() {
-    if (superUnlocked) return true;
+    if (superUnlocked || window.__isSuperAdmin) return true;
     try {
       const panel = document.getElementById("panel-super-admin") || document.getElementById("super-admin-view");
       if (panel && window.getComputedStyle(panel).display !== "none") return true;
-      const pinInput = document.getElementById("login-pin");
-      if (pinInput && pinInput.value === SUPER_PIN) return true;
     } catch (_) {}
     return false;
   }
