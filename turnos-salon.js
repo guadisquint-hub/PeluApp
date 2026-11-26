@@ -97,8 +97,8 @@
     if (document.getElementById("vista-turnos-salon")) return;
 
     // Buscar contenedor principal donde viven las demás vistas/pestañas
-    const vistaRef = document.querySelector('[id^="vista-"], [id^="tab-"], main > div');
-    const contenedorPadre = vistaRef ? vistaRef.parentElement : document.body;
+    const mainEl = document.querySelector("main") || document.getElementById("app-container") || document.body;
+    const contenedorPadre = mainEl;
 
     const sec = document.createElement("section");
     sec.id = "vista-turnos-salon";
@@ -419,12 +419,9 @@
     construirVistaTurnos();
     const sec = document.getElementById("vista-turnos-salon");
     if (!sec) return;
-    if (sec.style.display === "block") {
-      renderTurnos();
-      return;
-    }
+    const padre = sec.parentElement;
     vistasOcultadas = [];
-    Array.from(sec.parentElement.children).forEach((el) => {
+    Array.from(padre.children).forEach((el) => {
       if (el === sec) return;
       if (el.tagName === "NAV" || el.tagName === "HEADER" || el.id === "modal-superadmin-auth") return;
       const computed = window.getComputedStyle(el).display;
@@ -434,6 +431,7 @@
       }
     });
     sec.style.display = "block";
+    sec.scrollIntoView({ behavior: "smooth", block: "start" });
     renderTurnos();
   }
 
