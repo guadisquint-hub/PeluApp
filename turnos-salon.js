@@ -95,14 +95,11 @@
 
   function construirVistaTurnos() {
     if (document.getElementById("vista-turnos-salon")) return;
-
-    // Buscar contenedor principal donde viven las demás vistas/pestañas
-    const mainEl = document.querySelector("main") || document.getElementById("app-container") || document.body;
-    const contenedorPadre = mainEl;
+    const contenedorPadre = document.getElementById("turnos-nativo-host") || document.getElementById("tab-turnos") || document.body;
 
     const sec = document.createElement("section");
     sec.id = "vista-turnos-salon";
-    sec.style.cssText = "display:none; padding:16px; max-width:1100px; margin:0 auto; font-family:system-ui,-apple-system,sans-serif;";
+    sec.style.cssText = "display:block; padding:12px 4px; max-width:1100px; margin:0 auto; font-family:system-ui,-apple-system,sans-serif;";
     sec.innerHTML = `
       <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:16px;">
         <div>
@@ -197,6 +194,7 @@
     window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
   }
 
+  window.renderPeluTurnos = function() { construirVistaTurnos(); renderTurnos(); };
   function renderTurnos() {
     const todos = cargarTurnos();
     const manana = hoyISO(1);
@@ -456,5 +454,7 @@
     refBtn.parentElement.appendChild(btn);
   }
 
-  setInterval(inyectarBotonPestana, 700);
+  
+  construirVistaTurnos();
+  renderTurnos();
 })();
