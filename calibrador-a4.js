@@ -84,14 +84,17 @@
       if (zona) zona.classList.remove("cal-editing");
       return;
     }
-    const clave = prompt("Acceso Super Admin · Ingresá tu PIN maestro (202699):");
-    if (clave === SUPER_PIN) {
-      superUnlocked = true;
-      ensureToolbar();
-      const bar = document.getElementById("cal-a4-toolbar");
-      if (bar) bar.style.display = "flex";
-    } else if (clave !== null) {
-      alert("PIN incorrecto.");
+    if (typeof window.autenticarSuperAdminFirebase === "function") {
+      window.autenticarSuperAdminFirebase().then((ok) => {
+        if (ok) {
+          superUnlocked = true;
+          ensureToolbar();
+          const bar = document.getElementById("cal-a4-toolbar");
+          if (bar) bar.style.display = "flex";
+        }
+      });
+    } else {
+      alert("Error: módulo de autenticación Super Admin no disponible.");
     }
   }
 
